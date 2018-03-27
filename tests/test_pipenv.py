@@ -2,6 +2,7 @@ import os
 from pkg_resources import parse_version
 import re
 import tempfile
+import textwrap
 import shutil
 import json
 import pytest
@@ -44,6 +45,22 @@ def check_internet():
 
 
 WE_HAVE_INTERNET = check_internet()
+
+
+def add_custom_pypi(pypi, toml_contents, name='custom'):
+    return textwrap.dedent(
+        """
+        [[source]]
+        url = "{url}/simple"
+        verify_ssl = true
+        name = "{name}"
+
+        {contents}
+        """.format(
+            url=pypi.url,
+            name=name,
+            contents=toml_contents,
+        ))
 
 
 @pytest.fixture(scope='module')
@@ -305,15 +322,13 @@ class TestPipenv:
         """Ensure that running `pipenv install` doesn't install dev packages"""
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 tablib = "*"
 
 [dev-packages]
 records = "*"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
             c = p.pipenv('install')
             assert c.return_code == 0
@@ -331,12 +346,10 @@ records = "*"
     def test_install_without_dev_section(self, pypi):
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 tablib = "*"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
             c = p.pipenv('install')
             assert c.return_code == 0
@@ -510,12 +523,10 @@ setup(
     def test_windows_pinned_pipfile(self, pypi):
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 tablib = "<0.12"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
             c = p.pipenv('install')
             assert c.return_code == 0
@@ -530,14 +541,12 @@ tablib = "<0.12"
 
             with PipenvInstance(pypi=pypi) as p:
                 with open(p.pipfile_path, 'w') as f:
-                    contents = """
-{source}
-
+                    contents = add_custom_pypi(pypi, """
 [packages]
 requests = "*"
 records = "*"
 tpfd = "*"
-                    """.format(source=pypi.as_source_entry()).strip()
+                    """).strip()
                     f.write(contents)
 
                 c = p.pipenv('install')
@@ -560,14 +569,12 @@ tpfd = "*"
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 requests = "*"
 records = "*"
 tpfd = "*"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install --sequential')
@@ -610,12 +617,10 @@ tpfd = "*"
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
-requests = {{ version = "*", markers="os_name=='splashwear'" }}
-                """.format(source=pypi.as_source_entry()).strip()
+requests = {version = "*", markers="os_name=='splashwear'"}
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install')
@@ -634,12 +639,10 @@ requests = {{ version = "*", markers="os_name=='splashwear'" }}
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
-requests = {{ version = "*", os_name = "== 'splashwear'" }}
-                """.format(source=pypi.as_source_entry()).strip()
+requests = {version = "*", os_name = "== 'splashwear'"}
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install')
@@ -658,13 +661,11 @@ requests = {{ version = "*", os_name = "== 'splashwear'" }}
         """
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 apscheduler = "*"
-funcsigs = {{ version = "*", os_name = "== 'splashwear'" }}
-                """.format(source=pypi.as_source_entry()).strip()
+funcsigs = {version = "*", os_name = "== 'splashwear'"}
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install')
@@ -684,13 +685,11 @@ funcsigs = {{ version = "*", os_name = "== 'splashwear'" }}
         """
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 apscheduler = "*"
 funcsigs = "*"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install')
@@ -721,12 +720,10 @@ funcsigs = "*"
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
-requests = {{version = "*"}}
-                """.format(source=pypi.as_source_entry()).strip()
+requests = {version = "*"}
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('install')
@@ -941,13 +938,12 @@ import records
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
+                contents = add_custom_pypi(pypi, """
 [packages]
 requests = "==2.14.0"
 [dev-packages]
 flask = "==0.12.2"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
 
             req_list = ("requests==2.14.0")
@@ -1007,12 +1003,10 @@ requests = {git = "https://github.com/requests/requests", egg = "requests"}
 
         with PipenvInstance(pypi=pypi) as p:
             with open(p.pipfile_path, 'w') as f:
-                contents = """
-{source}
-
+                contents = add_custom_pypi(pypi, """
 [packages]
 maya = "*"
-                """.format(source=pypi.as_source_entry()).strip()
+                """).strip()
                 f.write(contents)
 
             c = p.pipenv('lock')
